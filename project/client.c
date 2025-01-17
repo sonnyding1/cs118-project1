@@ -1,6 +1,7 @@
-#include "libsocket.h"
+#include "consts.h"
+#include "io.h"
+#include "transport.h"
 #include <arpa/inet.h>
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,26 +14,22 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
+    /* Create sockets */
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    // use IPv4  use UDP
+
+    /* Construct server address */
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET; // use IPv4
     // Only supports localhost as a hostname, but that's all we'll test on
-    const char* addr =
-        strcmp(argv[1], "localhost") == 0 ? "127.0.0.1" : argv[1];
-    int port = atoi(argv[2]);
+    char* addr = strcmp(argv[1], "localhost") == 0 ? "127.0.0.1" : argv[1];
+    server_addr.sin_addr.s_addr = inet_addr(addr);
+    // Set sending port
+    int PORT = atoi(argv[2]);
+    server_addr.sin_port = htons(PORT); // Big endian
 
-    // TODO: Create socket
-
-    // TODO: Set stdin and socket nonblocking
-
-    // TODO: Construct server address
-    
-    char buffer[1024];
-
-    // Listen loop
-    while (1) {
-        // TODO: Receive from socket
-        // TODO: If data, write to stdout
-        // TODO: Read from stdin
-        // TODO: If data, send to socket
-    }
+    init_io();
+    listen_loop(sockfd, &server_addr, CLIENT, input_io, output_io);
 
     return 0;
 }

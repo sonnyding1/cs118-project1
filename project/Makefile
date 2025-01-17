@@ -1,9 +1,9 @@
 CC=gcc
 CPPFLAGS=-Wall -Wextra 
 LDFLAGS= 
-LDLIBS=-lsocket
+LDLIBS=
 
-DEPS=
+DEPS=transport.o io.o
 
 all: server client 
 

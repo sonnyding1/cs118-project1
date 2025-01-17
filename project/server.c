@@ -1,11 +1,10 @@
-#include "libsocket.h"
+#include "consts.h"
+#include "transport.h"
+#include "io.h"
 #include <arpa/inet.h>
-#include <fcntl.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
-#include <sys/time.h>
 #include <unistd.h>
 
 int main(int argc, char** argv) {
@@ -14,29 +13,39 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    int port = atoi(argv[1]);
+    /* Create sockets */
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    // use IPv4  use UDP
 
-    // TODO: Create socket
+    /* Construct our address */
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET; // use IPv4
+    server_addr.sin_addr.s_addr =
+        INADDR_ANY; // accept all connections
+                    // same as inet_addr("0.0.0.0")
+                    // "Address string to network bytes"
+    // Set receiving port
+    int PORT = atoi(argv[1]);
+    server_addr.sin_port = htons(PORT); // Big endian
 
-    // TODO: Set stdin and socket nonblocking
+    /* Let operating system know about our config */
+    int did_bind =
+        bind(sockfd, (struct sockaddr*) &server_addr, sizeof(server_addr));
 
-    // TODO: Construct server address
-    
-    // TODO: Bind address to socket
-    
-    // TODO: Create sockaddr_in and socklen_t buffers to store client address
+    struct sockaddr_in client_addr; // Same information, but about client
+    socklen_t s = sizeof(struct sockaddr_in);
+    char buffer;
 
-    char buffer[1024];
-    int client_connected = 0;
-
-    // Listen loop
+    // Wait for client connection
     while (1) {
-        // TODO: Receive from socket
-        // TODO: If no data and client not connected, continue
-        // TODO: If data, client is connected and write to stdout
-        // TODO: Read from stdin
-        // TODO: If data, send to socket
+        int bytes_recvd = recvfrom(sockfd, &buffer, sizeof(buffer), MSG_PEEK,
+                                   (struct sockaddr*) &client_addr, &s);
+        if (bytes_recvd > 0)
+            break;
     }
+
+    init_io();
+    listen_loop(sockfd, &client_addr, SERVER, input_io, output_io);
 
     return 0;
 }
