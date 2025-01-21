@@ -33,8 +33,8 @@
 // Diagnostic messages
 #define RECV 0
 #define SEND 1
-#define RTOD 2
-#define DUPA 3
+#define RTOS 2
+#define DUPS 3
 
 // Structs
 typedef struct {
@@ -80,10 +80,10 @@ static inline void print_diag(packet* pkt, int diag) {
     case SEND:
         fprintf(stderr, "SEND");
         break;
-    case RTOD:
+    case RTOS:
         fprintf(stderr, "RTOS");
         break;
-    case DUPA:
+    case DUPS:
         fprintf(stderr, "DUPS");
         break;
     }
