@@ -1,6 +1,6 @@
 #include "consts.h"
-#include "transport.h"
 #include "io.h"
+#include "transport.h"
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,12 +37,8 @@ int main(int argc, char** argv) {
     char buffer;
 
     // Wait for client connection
-    while (1) {
-        int bytes_recvd = recvfrom(sockfd, &buffer, sizeof(buffer), MSG_PEEK,
-                                   (struct sockaddr*) &client_addr, &s);
-        if (bytes_recvd > 0)
-            break;
-    }
+    int bytes_recvd = recvfrom(sockfd, &buffer, sizeof(buffer), MSG_PEEK,
+                               (struct sockaddr*) &client_addr, &s);
 
     init_io();
     listen_loop(sockfd, &client_addr, SERVER, input_io, output_io);
