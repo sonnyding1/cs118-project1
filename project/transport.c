@@ -60,8 +60,8 @@ initial_seqs handshake(int sockfd, struct sockaddr_in *addr, int type,
             while (!is_handshake_complete)
             { // while loop for retransmission
                 // send SYN
-                uint8_t payload[MAX_PAYLOAD];
-                ssize_t payload_size = input_p(payload, MAX_PAYLOAD);
+                uint8_t payload[MAX_PAYLOAD] = {0};
+                ssize_t payload_size = 0;
 
                 char syn_packet_buffer[sizeof(packet) + MAX_PAYLOAD] = {0};
                 packet *syn_packet = (packet *)syn_packet_buffer;
@@ -113,8 +113,8 @@ initial_seqs handshake(int sockfd, struct sockaddr_in *addr, int type,
                     uint16_t server_initial_seq_num = ntohs(receive_packet->seq);
                     seq_nums.received_ack = server_initial_seq_num + 1;
 
-                    uint8_t ack_payload[MAX_PAYLOAD];
-                    ssize_t ack_payload_size = input_p(ack_payload, MAX_PAYLOAD);
+                    uint8_t ack_payload[MAX_PAYLOAD] = {0};
+                    ssize_t ack_payload_size = 0;
 
                     char ack_buffer[sizeof(packet) + MAX_PAYLOAD] = {0};
                     packet *ack_packet = (packet *)ack_buffer;
@@ -162,8 +162,8 @@ initial_seqs handshake(int sockfd, struct sockaddr_in *addr, int type,
                 if (syn && !ack)
                 {
                     // send SYN-ACK
-                    uint8_t syn_ack_payload[MAX_PAYLOAD];
-                    ssize_t syn_ack_size = input_p(syn_ack_payload, MAX_PAYLOAD);
+                    uint8_t syn_ack_payload[MAX_PAYLOAD] = {0};
+                    ssize_t syn_ack_size = 0;
 
                     char syn_ack_buffer[sizeof(packet) + MAX_PAYLOAD] = {0};
                     packet *syn_ack_packet = (packet *)syn_ack_buffer;
