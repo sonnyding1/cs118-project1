@@ -41,6 +41,19 @@ typedef struct
     uint16_t received_ack;
 } initial_seqs;
 
+typedef struct {
+    char data[MAX_PACKET];
+    size_t len;
+    struct timeval sent_time;
+    int retransmit_count;
+} SentPacket;
+
+typedef struct {
+    char data[MAX_PACKET];
+    size_t len;
+    uint16_t seq;
+} ReceivedPacket;
+
 initial_seqs handshake(int sockfd, struct sockaddr_in *addr, int type,
                        ssize_t (*input_p)(uint8_t *, size_t),
                        void (*output_p)(uint8_t *, size_t))
@@ -68,7 +81,7 @@ initial_seqs handshake(int sockfd, struct sockaddr_in *addr, int type,
                 syn_packet->seq = htons(client_initial_seq_num);
                 syn_packet->ack = htons(0);
                 syn_packet->length = htons(payload_size);
-                syn_packet->win = htons(MAX_WINDOW);
+                syn_packet->win = htons(MIN_WINDOW);
                 syn_packet->flags = SYN;
                 memcpy(syn_packet->payload, payload, payload_size);
                 set_parity(syn_packet);
@@ -121,7 +134,7 @@ initial_seqs handshake(int sockfd, struct sockaddr_in *addr, int type,
                     ack_packet->seq = htons(ack_num);
                     ack_packet->ack = htons(server_initial_seq_num + 1);
                     ack_packet->length = htons(ack_payload_size);
-                    ack_packet->win = htons(MAX_WINDOW);
+                    ack_packet->win = htons(MIN_WINDOW);
                     ack_packet->flags = ACK;
                     memcpy(ack_packet->payload, ack_payload, ack_payload_size);
                     set_parity(ack_packet);
@@ -213,7 +226,7 @@ initial_seqs handshake(int sockfd, struct sockaddr_in *addr, int type,
                     uint16_t ack_num = ntohs(ack_packet->ack);
                     uint16_t seq_num = ntohs(ack_packet->seq);
 
-                    seq_nums.received_ack = ack_num;
+                    seq_nums.received_ack = seq_num;
 
                     if ((ack_flags & ACK) && ack_num == server_initial_seq_num + 1)
                     {
@@ -263,34 +276,32 @@ void listen_loop(int sockfd, struct sockaddr_in *addr, int type,
     initial_seqs initial_seq_nums = handshake(sockfd, addr, type, input_p, output_p);
     // fprintf(stderr, "seq: %d, ack: %d\n", initial_seq_nums.seq_num, initial_seq_nums.received_ack);
 
+    SentPacket sender_buffer[MAX_BUFFER];
+    int sender_buffer_count = 0;
+    int bytes_in_flight = 0;
+    int current_window = MIN_WINDOW;
+
+    ReceivedPacket receiver_buffer[MAX_BUFFER];
+    int receiver_buffer_count = 0;
+    int receiver_buffer_bytes = 0;
+
+    uint16_t my_ack = initial_seq_nums.received_ack;
+    uint16_t my_syn = initial_seq_nums.seq_num;
+
+    uint16_t last_ack_num = 0;
+    int dup_ack_count = 0;
+
     // indexes receiver buffer
     int last_packet_rcvd = 0;
 
     // manages sender buffer
     int last_packet_sent = 0, last_packet_acked = 0;
 
-    // determines packets in receiver buffer to output
-    int expected_seq = 0;
-    int current_seq = 0;
-    if (type == SERVER)
-    {
-        expected_seq = initial_seq_nums.received_ack;
-        current_seq = initial_seq_nums.seq_num + 1;
-    }
-    else if (type == CLIENT)
-    {
-        expected_seq = initial_seq_nums.received_ack;
-        current_seq = initial_seq_nums.seq_num + 1;
-    }
-
-    uint8_t receiver_buffer[40 * MAX_PACKET];
-    uint8_t sender_buffer[40 * MAX_PACKET];
-
     while (true) {
         fd_set read_fds;
         FD_ZERO(&read_fds);
         FD_SET(sockfd, &read_fds);
-        struct timeval timeout = {1, 0};
+        struct timeval timeout = {0.1, 0};
 
         int ready = select(sockfd + 1, &read_fds, NULL, NULL, &timeout);
 
@@ -315,7 +326,9 @@ void listen_loop(int sockfd, struct sockaddr_in *addr, int type,
                 uint16_t flags = pkt->flags;
                 bool syn = flags & SYN;
                 bool ack = flags & ACK;
-                uint16_t ack_num = ntohs(pkt->ack);
+                uint16_t ack_num = pkt->ack;
+                uint16_t seq_num = pkt->seq;
+                my_ack = seq_num + 1;
 
                 if (pkt->length > 0) {
                     output_p(pkt->payload, pkt->length);
@@ -331,11 +344,11 @@ void listen_loop(int sockfd, struct sockaddr_in *addr, int type,
         if (input_len > 0) {
             uint8_t send_buf[MAX_PACKET] = {0};
             packet *send_pkt = (packet *)send_buf;
-            send_pkt->seq = current_seq;
-            current_seq++;
-            send_pkt->ack = expected_seq;
+            send_pkt->seq = my_syn;
+            my_syn++;
+            send_pkt->ack = my_ack;
             send_pkt->length = input_len;
-            send_pkt->win = MAX_WINDOW;
+            send_pkt->win = MIN_WINDOW;
             send_pkt->flags |= ACK;
             memcpy(send_pkt->payload, input_data, input_len);
             set_parity(send_pkt);
@@ -345,7 +358,6 @@ void listen_loop(int sockfd, struct sockaddr_in *addr, int type,
             sendto(sockfd, send_pkt, sizeof(packet) + input_len, 0, (struct sockaddr *)addr, sizeof(*addr));
             print_diag(send_pkt, SEND);
             // add_to_send_buffer(send_pkt, sizeof(packet) + input_len);
-            current_seq++;
         }
     }
 }
