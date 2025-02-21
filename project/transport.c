@@ -336,9 +336,9 @@ void listen_loop(int sockfd, struct sockaddr_in *addr, int type,
             send_pkt->ack = expected_seq;
             send_pkt->length = input_len;
             send_pkt->win = MAX_WINDOW;
-            set_parity(send_pkt);
             send_pkt->flags |= ACK;
             memcpy(send_pkt->payload, input_data, input_len);
+            set_parity(send_pkt);
             htons_packet(send_pkt);
             
             // htons_packet(send_pkt);
