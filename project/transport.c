@@ -286,7 +286,7 @@ void listen_loop(int sockfd, struct sockaddr_in *addr, int type,
     int receiver_buffer_bytes = 0;
 
     uint16_t my_ack = initial_seq_nums.received_ack;
-    uint16_t my_syn = initial_seq_nums.seq_num;
+    uint16_t my_seq = initial_seq_nums.seq_num+1;
 
     uint16_t last_ack_num = 0;
     int dup_ack_count = 0;
@@ -344,8 +344,8 @@ void listen_loop(int sockfd, struct sockaddr_in *addr, int type,
         if (input_len > 0) {
             uint8_t send_buf[MAX_PACKET] = {0};
             packet *send_pkt = (packet *)send_buf;
-            send_pkt->seq = my_syn;
-            my_syn++;
+            send_pkt->seq = my_seq;
+            my_seq++;
             send_pkt->ack = my_ack;
             send_pkt->length = input_len;
             send_pkt->win = MIN_WINDOW;
